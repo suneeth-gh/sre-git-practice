@@ -1,1 +1,1 @@
-TIMEOUT=10 ENVIRONMENT=staging APP=project-alpha
+TIMEOUT=60 ENVIRONMENT=staging APP=project-alpha
