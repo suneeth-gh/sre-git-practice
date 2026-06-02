@@ -1,0 +1,30 @@
+name: CI pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-22.04
+    steps:
+     - name: Checkout code
+       uses: actions/checkout@v4
+
+     - name: Confirm config exists
+       run: |
+          if [ -f "config.txt" ]; then
+            echo "config.txt found"
+            cat config.txt
+          else
+            echo "config.txt missing"
+            exit 1
+          fi
+  
