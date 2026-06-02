@@ -6,25 +6,62 @@ on:
       - main
       - 'feature/**'
       - 'fix/**'
+
+    paths-ignore:
+      - '**.md'             # don't run CI for markdown only changes
+      - '.gitignore'        # or gitignore changes   
+
   pull_request:
     branches:
-      - main
+      - main 
+
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'Enable debug ouput'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   validate:
     name: Validate
     runs-on: ubuntu-22.04
-    steps:
-     - name: Checkout code
-       uses: actions/checkout@v4
 
-     - name: Confirm config exists
-       run: |
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: Print trigger information
+        run: |
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Branch:       ${{ github.ref }}"
+          echo "Commit:       ${{ github.sha }}"
+          echo "Actor:        ${{ github.actor }}"
+
+      - name: Debug mode output
+        if: github.event.inputs.debug_mode == 'true'
+        run: |
+          echo "Debug mode enabled"
+          echo "Full context:"
+          env | grep GITHUB
+
+      - name: Confirm config exists
+        run: |
           if [ -f "config.txt" ]; then
-            echo "config.txt found"
-            cat config.txt
+          echo "config.txt found"
+          cat config.txt
           else
-            echo "config.txt missing"
-            exit 1
+          echo "config.txt missing"
+          exit 1
           fi
+
+      - name: Simulate test run
+        run: |
+          echo "Running tests..."
+          sleep 2
+          echo "All tests passed"
   
