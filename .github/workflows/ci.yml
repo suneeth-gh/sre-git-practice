@@ -42,27 +42,62 @@ jobs:
           fi
 
   test:
-    name: Test
-    runs-on: ubuntu-22.04
-    needs: lint
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run simulated tests
-        run: |
-          echo "Running unit tests..."
-          sleep 1
-          echo "✓ Unit tests passed"
-
-      - name: Set test result output
-        id: test-result
-        run: echo "result=passed" >> $GITHUB_OUTPUT
-
-      - name: Print test result
-        run: |
-          echo "Test result: ${{ steps.test-result.outputs.result }}"
+            name: Test
+            runs-on: ubuntu-22.04
+            needs: lint
+        
+            steps:
+              - name: Checkout code
+                uses: actions/checkout@v4
+        
+              - name: Run simulated tests
+                run: |
+                  echo "Running unit tests..."
+                  sleep 1
+                  echo "✓ Unit tests passed"
+        
+              - name: Generate test report
+                run: |
+                  mkdir -p test-output
+                  echo "Test Report" > test-output/report.txt
+                  echo "============" >> test-output/report.txt
+                  echo "Run date:   $(date)" >> test-output/report.txt
+                  echo "Commit:     ${{ github.sha }}" >> test-output/report.txt
+                  echo "Branch:     ${{ github.ref }}" >> test-output/report.txt
+                  echo "Result:     PASSED" >> test-output/report.txt
+        
+              - name: Upload test report
+                uses: actions/upload-artifact@v4
+                with:
+                  name: test-report
+                  path: test-output/
+                  retention-days: 7
+        
+              - name: Set test result output
+                id: test-result
+                run: echo "result=passed" >> $GITHUB_OUTPUT
+        
+              - name: Print test result
+                run: |
+                  echo "Test result: ${{ steps.test-result.outputs.result }}"
+        
+  report:
+            name: Read Test Report
+            runs-on: ubuntu-22.04
+            needs: test
+        
+            steps:
+              - name: Download test report
+                uses: actions/download-artifact@v4
+                with:
+                  name: test-report
+                  path: downloaded-report/
+        
+              - name: Read and print report
+                run: |
+                  echo "Downloaded report contents:"
+                  echo "==========================="
+                  cat downloaded-report/report.txt
 
   compatibility-check:
     name: Check on ${{ matrix.os }}
@@ -92,7 +127,7 @@ jobs:
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-22.04
-    needs: [lint, test, compatibility-check]
+    needs: [lint, test, compatibility-check,report]
 
     steps:
       - name: Print summary
