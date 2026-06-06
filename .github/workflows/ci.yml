@@ -1,4 +1,4 @@
-name: CI pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -6,62 +6,80 @@ on:
       - main
       - 'feature/**'
       - 'fix/**'
-
     paths-ignore:
-      - '**.md'             # don't run CI for markdown only changes
-      - '.gitignore'        # or gitignore changes   
-
+      - '**.md'
+      - '.gitignore'
   pull_request:
     branches:
-      - main 
-
+      - main
   workflow_dispatch:
-    inputs:
-      debug_mode:
-        description: 'Enable debug ouput'
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
 
 jobs:
-  validate:
-    name: Validate
+  lint:
+    name: Lint & Validate
     runs-on: ubuntu-22.04
 
     steps:
-      - name: checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Print trigger information
-        run: |
-          echo "Triggered by: ${{ github.event_name }}"
-          echo "Branch:       ${{ github.ref }}"
-          echo "Commit:       ${{ github.sha }}"
-          echo "Actor:        ${{ github.actor }}"
-
-      - name: Debug mode output
-        if: github.event.inputs.debug_mode == 'true'
-        run: |
-          echo "Debug mode enabled"
-          echo "Full context:"
-          env | grep GITHUB
-
-      - name: Confirm config exists
+      - name: Validate config exists
         run: |
           if [ -f "config.txt" ]; then
-          echo "config.txt found"
-          cat config.txt
+            echo "✓ config.txt found"
           else
-          echo "config.txt missing"
-          exit 1
+            echo "✗ config.txt missing"
+            exit 1
           fi
 
-      - name: Simulate test run
+      - name: Validate workflow file exists
         run: |
-          echo "Running tests..."
-          sleep 2
-          echo "All tests passed"
-  
+          if [ -f ".github/workflows/ci.yml" ]; then
+            echo "✓ ci.yml found"
+          else
+            echo "✗ ci.yml missing"
+            exit 1
+          fi
+
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+    needs: lint
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run simulated tests
+        run: |
+          echo "Running unit tests..."
+          sleep 1
+          echo "✓ Unit tests passed"
+
+      - name: Set test result output
+        id: test-result
+        run: echo "result=passed" >> $GITHUB_OUTPUT
+
+      - name: Print test result
+        run: |
+          echo "Test result: ${{ steps.test-result.outputs.result }}"
+
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-22.04
+    needs: [lint, test]
+
+    steps:
+      - name: Print summary
+        run: |
+          echo "==============================="
+          echo "Pipeline completed successfully"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Actor:  ${{ github.actor }}"
+          echo "==============================="
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Pipeline failed — would notify Slack here in a real pipeline"
