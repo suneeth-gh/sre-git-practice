@@ -64,10 +64,35 @@ jobs:
         run: |
           echo "Test result: ${{ steps.test-result.outputs.result }}"
 
+  compatibility-check:
+    name: Check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+        config-file: ['config.txt']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check config on ${{ matrix.os }}
+        run: |
+          echo "Running on: ${{ matrix.os }}"
+          echo "Checking: ${{ matrix.config-file }}"
+          if [ -f "${{ matrix.config-file }}" ]; then
+            echo "✓ ${{ matrix.config-file }} exists on ${{ matrix.os }}"
+          else
+            echo "✗ ${{ matrix.config-file }} missing on ${{ matrix.os }}"
+            exit 1
+          fi
+
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-22.04
-    needs: [lint, test]
+    needs: [lint, test, compatibility-check]
 
     steps:
       - name: Print summary
