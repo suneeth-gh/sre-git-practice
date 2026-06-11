@@ -123,11 +123,47 @@ jobs:
             echo "✗ ${{ matrix.config-file }} missing on ${{ matrix.os }}"
             exit 1
           fi
+  
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-22.04
+    needs: test
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t project-alpha:${{ github.sha }} .
+          echo "Built image: project-alpha:${{ github.sha }}"
+
+      - name: Verify image was built
+        run: |
+          docker images project-alpha
+          echo "Image size:"
+          docker inspect project-alpha:${{ github.sha }} \
+            --format='{{.Size}}' | \
+            awk '{printf "%.1f MB\n", $1/1024/1024}'
+
+      - name: Run the container as a smoke test
+        run: |
+          echo "Running container smoke test..."
+          docker run --rm project-alpha:${{ github.sha }}
+
+      - name: Save image digest
+        run: |
+          IMAGE_DIGEST=$(docker inspect \
+            project-alpha:${{ github.sha }} \
+            --format='{{.Id}}')
+          echo "Image digest: $IMAGE_DIGEST"
+          echo "digest=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
+        id: image-info 
+          
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-22.04
-    needs: [lint, test, compatibility-check,report]
+    needs: [lint, test, compatibility-check,report, docker-build]
 
     steps:
       - name: Print summary
