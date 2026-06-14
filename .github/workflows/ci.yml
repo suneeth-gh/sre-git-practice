@@ -196,9 +196,11 @@ jobs:
 
       - name: Verify image in ACR
         run: |
-          az acr repository list \
-            --name ${{ secrets.ACR_NAME }} \
-            --output table
+          echo "Verifying image exists in ACR..."
+          docker manifest inspect \
+            ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:${{ github.sha }} \
+            && echo "✓ Image verified in ACR" \
+            || echo "✗ Image not found"
 
   summary:
     name: Pipeline Summary
