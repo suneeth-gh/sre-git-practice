@@ -159,11 +159,51 @@ jobs:
           echo "Image digest: $IMAGE_DIGEST"
           echo "digest=$IMAGE_DIGEST" >> $GITHUB_OUTPUT
         id: image-info 
-          
+  
+  push-to-acr:
+    name: Push to Azure Container Registry
+    runs-on: ubuntu-22.04
+    needs: docker-build
+
+    steps:
+      - name: check Azure cli install
+        run: |
+            az --version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | \
+          docker login ${{ secrets.ACR_NAME }}.azurecr.io \
+            -u ${{ secrets.ACR_USERNAME }} \
+            --password-stdin
+
+      - name: Build and tag for ACR
+        run: |
+          docker build \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:${{ github.sha }} \
+            -t ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:latest \
+            .
+
+      - name: Push to ACR
+        run: |
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:${{ github.sha }}
+          docker push ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:latest
+          echo "✓ Pushed to ACR successfully"
+          echo "Image: ${{ secrets.ACR_NAME }}.azurecr.io/project-alpha:${{ github.sha }}"
+
+      - name: Verify image in ACR
+        run: |
+          az acr repository list \
+            --name ${{ secrets.ACR_NAME }} \
+            --output table
+
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-22.04
-    needs: [lint, test, compatibility-check,report, docker-build]
+    needs: [lint, test, compatibility-check,report, docker-build, push-to-acr]
 
     steps:
       - name: Print summary
