@@ -206,7 +206,7 @@ jobs:
   summary:
     name: Pipeline Summary
     runs-on: ubuntu-22.04
-    needs: [lint, test, compatibility-check,report, docker-build, push-to-acr]
+    needs: [lint, test, compatibility-check,report, docker-build]
 
     steps:
       - name: Print summary
