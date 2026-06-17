@@ -164,6 +164,7 @@ jobs:
     name: Push to Azure Container Registry
     runs-on: ubuntu-22.04
     needs: docker-build
+    if: false
 
     steps:
       - name: check Azure cli install
